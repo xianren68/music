@@ -26,14 +26,17 @@ type Model struct {
 	curIndex int
 	// 是否点击enter
 	isEnter bool
+	music   *model.Music
 }
 
 func (m *Model) View() string {
-	return m.file.View(m.curIndex, &m.isEnter)
+	f := m.file.View(m.curIndex, &m.isEnter)
+	return m.music.View() + f
 }
 func initModel() *Model {
 	m := &Model{}
 	m.file = model.InitRoot(root)
+	m.music = model.DefaultMusic
 	return m
 }
 func (m *Model) Init() tea.Cmd {
@@ -56,10 +59,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.curIndex > m.file.FilesLen {
 				m.curIndex = m.file.FilesLen
 			}
+		case "ctrl+s":
+			model.CLose()
 		case "enter":
 			m.isEnter = true
 		}
-
+	case tickMsg:
+		break
 	}
 	return m, nil
 }
+
+type tickMsg struct{}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -91,7 +92,20 @@ func (f *File) View(index int, enter *bool) string {
 			if head.isDir {
 				head.open = !head.open
 			} else {
-				go Player(head.absolute)
+				go func() {
+					ch <- struct{}{}
+					ch = make(chan struct{}, 1)
+					Play(head.absolute)
+					for {
+						select {
+						case <-ch:
+							return
+						default:
+							// time.Sleep(time.Second)
+						}
+					}
+				}()
+				time.Sleep(time.Millisecond * 100)
 			}
 		}
 		if head.open {
