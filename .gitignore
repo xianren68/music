@@ -1,0 +1,5 @@
+.vscode/
+*.sum
+.fleet/
+.idea/
+*.exe
