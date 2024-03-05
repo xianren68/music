@@ -30,7 +30,8 @@ type File struct {
 	open     bool
 	isDir    bool
 	space    int
-	FilesLen int
+	AllFiles []*File
+	Index    int
 }
 
 func InitRoot(root Path) *File {
@@ -44,8 +45,8 @@ func InitRoot(root Path) *File {
 	f.relative = paths[len(paths)-1]
 	f.space = 1
 	f.isDir = true
-	f.FilesLen = len(f.files) - 1
 	f.InitFiles()
+	f.AllFiles = append(f.AllFiles, f.files...)
 	return f
 }
 func (f *File) InitFiles() {
@@ -78,47 +79,48 @@ func (f *File) InitFiles() {
 		}
 	}
 }
-func (f *File) View(index int, enter *bool) string {
-	var str = strings.Builder{}
-	stack := make([]*File, 0)
-	files := make([]*File, 0)
-	stack = append(stack, f)
-	var j = 0
-	for len(stack) != 0 {
-		head := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		files = append(files, head)
-		if j == index && *enter {
-			if head.isDir {
+func (f *File) enter(enter *bool) {
+	// 文件夹，打开或关闭
+	if f.AllFiles[f.Index].isDir {
+		stack := make([]*File, 0)
+		f.AllFiles = make([]*File, 0)
+		stack = append(stack, f)
+		var j = 0
+		for len(stack) != 0 {
+			head := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			f.AllFiles = append(f.AllFiles, head)
+			if j == f.Index {
 				head.open = !head.open
-			} else {
-				go func() {
-					ch <- struct{}{}
-					ch = make(chan struct{}, 1)
-					Play(head.absolute)
-					for {
-						select {
-						case <-ch:
-							return
-						default:
-							// time.Sleep(time.Second)
-						}
-					}
-				}()
-				time.Sleep(time.Millisecond * 100)
 			}
+			if head.open {
+				head.InitFiles()
+				stack = append(stack, head.files...)
+			}
+			j++
 		}
-		if head.open {
-			head.InitFiles()
-			stack = append(stack, head.files...)
-		}
-		j++
+	} else {
+		// 播放音乐
+		go func() {
+			// 关闭上一个协程
+			ch <- struct{}{}
+			ch = make(chan struct{}, 1)
+			// 播放音乐，会阻塞协程
+			Play(f.AllFiles[f.Index].absolute)
+		}()
+		time.Sleep(time.Millisecond * 100)
 	}
-	f.FilesLen = len(files) - 1
-	for i, file := range files {
+	*enter = false
+}
+func (f *File) View(enter *bool) string {
+	if *enter {
+		f.enter(enter)
+	}
+	var str = strings.Builder{}
+	for i, file := range f.AllFiles {
 		//鼠标指针在哪一行
 		cur := " "
-		if i == index {
+		if i == f.Index {
 			cur = RedWine + "→"
 		}
 		// 空格
@@ -136,6 +138,5 @@ func (f *File) View(index int, enter *bool) string {
 		str.WriteString(Cyan + file.relative)
 		str.WriteByte('\n')
 	}
-	*enter = false
 	return str.String()
 }

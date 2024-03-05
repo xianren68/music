@@ -10,9 +10,7 @@ import (
 )
 
 type Music struct {
-	name        string
-	duration    int
-	currenttime int
+	name string
 }
 
 // 关闭计时器
@@ -38,13 +36,12 @@ func Play(path string) {
 
 	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
 	speaker.Play(streamer)
-
-	select {}
+	// 下一首歌或关闭歌曲时协程结束
+	<-ch
 }
 func CLose() {
 	DefaultMusic.name = "没有音乐播放"
 	ch <- struct{}{}
-	speaker.Close()
 }
 
 func (m *Music) View() string {

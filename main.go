@@ -22,15 +22,13 @@ func main() {
 
 type Model struct {
 	file *model.File
-	// 光标索引
-	curIndex int
 	// 是否点击enter
 	isEnter bool
 	music   *model.Music
 }
 
 func (m *Model) View() string {
-	f := m.file.View(m.curIndex, &m.isEnter)
+	f := m.file.View(&m.isEnter)
 	return m.music.View() + f
 }
 func initModel() *Model {
@@ -42,6 +40,7 @@ func initModel() *Model {
 func (m *Model) Init() tea.Cmd {
 	// Just return `nil`, which means "no I/O right now, please."
 	return nil
+
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -50,24 +49,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		case "w":
-			m.curIndex--
-			if m.curIndex < 0 {
-				m.curIndex = 0
+			m.file.Index--
+			if m.file.Index < 0 {
+				m.file.Index = 0
 			}
 		case "s":
-			m.curIndex++
-			if m.curIndex > m.file.FilesLen {
-				m.curIndex = m.file.FilesLen
+			m.file.Index++
+			if m.file.Index >= len(m.file.AllFiles) {
+				m.file.Index = len(m.file.AllFiles) - 1
 			}
 		case "ctrl+s":
 			model.CLose()
 		case "enter":
 			m.isEnter = true
 		}
-	case tickMsg:
-		break
 	}
 	return m, nil
 }
-
-type tickMsg struct{}
